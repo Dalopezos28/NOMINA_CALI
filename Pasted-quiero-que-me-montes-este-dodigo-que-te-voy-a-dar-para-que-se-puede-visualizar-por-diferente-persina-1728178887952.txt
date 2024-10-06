@@ -1,0 +1,110 @@
+quiero que me montes este dodigo que te voy a dar para que se puede visualizar por diferente persinas en la web, mediante github y render , este es el sigueinte codigo que quiero que modifiques, esta en tkinter y queiro que uses django para esta labor, este es el codigo:
+
+import pandas as pd
+from datetime import datetime, timedelta
+import tkinter as tk
+from tkinter import filedialog, messagebox
+from tkinter import ttk
+
+Función para seleccionar el archivo de entrada y procesar
+def select_and_process_file():
+input_file_path = filedialog.askopenfilename(
+title="Selecciona el archivo de Excel",
+filetypes=[("Excel files", "*.xlsx *.xls")]
+
+)
+if not input_file_path:
+    messagebox.showerror("Error", "No se seleccionó ningún archivo.")
+    return
+try:
+    # Load the Excel file
+    xls = pd.ExcelFile(input_file_path)
+    # Read the sheets ASISTENCIA and PROYECCION NOMINA into DataFrames
+    asistencia_df = pd.read_excel(xls, 'ASISTENCIA')
+    proyeccion_nomina_df = pd.read_excel(xls, 'proyeccion nomina')
+    # Create a list of dates for the current month from the first to the last day
+    today = datetime.now()
+    current_month_start = datetime(today.year, today.month, 1)
+    next_month = today.month % 12 + 1
+    current_month_end = datetime(today.year if next_month > 1 else today.year + 1, next_month, 1) - timedelta(days=1)
+    dates = pd.date_range(current_month_start, current_month_end)
+    # Add the new columns with the dates to the DataFrames
+    for date in dates:
+        asistencia_df[date.strftime('%Y-%m-%d')] = 0
+        proyeccion_nomina_df[date.strftime('%Y-%m-%d')] = 0
+    # Insert the date columns after specific columns in each DataFrame
+    asistencia_df = pd.concat([asistencia_df.iloc[:, :11], asistencia_df.iloc[:, 11:]], axis=1)
+    proyeccion_nomina_df = pd.concat([proyeccion_nomina_df.iloc[:, :12], proyeccion_nomina_df.iloc[:, 12:]], axis=1)
+    # Update the asistencia_df: Copy CANT RACIONES to the date columns where FECHA matches
+    for index, row in asistencia_df.iterrows():
+        fecha = row['FECHA']
+        cant_raciones = row['CANT RACIONES']
+        fecha_str = fecha.strftime('%Y-%m-%d') if pd.notna(fecha) else None
+        if fecha_str in asistencia_df.columns:
+            asistencia_df.at[index, fecha_str] = cant_raciones
+    # Update the proyeccion_nomina_df: Copy CANT RACIONES to the date columns within FECHAI and FECHA F range
+    for index, row in proyeccion_nomina_df.iterrows():
+        fecha_i = row[9]
+        fecha_f = row[10]
+        cant_raciones = row[11]
+        if pd.notna(fecha_i) and pd.notna(fecha_f):
+            date_range = pd.date_range(fecha_i, fecha_f)
+            for date in date_range:
+                date_str = date.strftime('%Y-%m-%d')
+                if date_str in proyeccion_nomina_df.columns:
+                    if date.weekday() < 5:  # Only set CANT RACIONES on weekdays
+                        proyeccion_nomina_df.at[index, date_str] = cant_raciones
+                    else:  # Set value to 0 or None for weekends
+                        proyeccion_nomina_df.at[index, date_str] = 0  # Puedes cambiarlo a None si prefieres null
+    # Filter and reorder columns for asistencia_df and proyeccion_nomina_df
+    # Keep only columns: NOMBRE COLABORADOR, MODALIDAD, INSITUCION EDUCATIVA, and date columns of September
+    # Define the columns to keep
+    columns_to_keep_asistencia = ['NOMBRE COLABORADOR', 'MODALIDAD', 'INSITUCION EDUCATIVA']
+    columns_to_keep_proyeccion = ['NOMBRE COLABORADOR', 'MODALIDAD', 'INSITUCION EDUCATIVA']
+    # Add date columns for September only
+    september_dates = [date.strftime('%Y-%m-%d') for date in dates if date.month == 10]
+    columns_to_keep_asistencia.extend(september_dates)
+    columns_to_keep_proyeccion.extend(september_dates)
+    # Reorder and filter the DataFrames
+    asistencia_filtered = asistencia_df[columns_to_keep_asistencia]
+    proyeccion_nomina_filtered = proyeccion_nomina_df[columns_to_keep_proyeccion]
+    # Merge asistencia_filtered and proyeccion_nomina_filtered
+    merged_df = pd.concat([asistencia_filtered, proyeccion_nomina_filtered])
+    # Group by 'NOMBRE COLABORADOR', 'MODALIDAD', 'INSITUCION EDUCATIVA' and aggregate the date columns
+    grouped_df = merged_df.groupby(['NOMBRE COLABORADOR', 'MODALIDAD', 'INSITUCION EDUCATIVA'], as_index=False).sum()
+    # Save the resulting DataFrame to an Excel file
+    file_path = filedialog.asksaveasfilename(
+        defaultextension=".xlsx",
+        filetypes=[("Excel files", "*.xlsx")],
+        title="Guardar archivo Excel"
+    )
+    if file_path:
+        grouped_df.to_excel(file_path, index=False)
+        messagebox.showinfo("Éxito", "El archivo se ha guardado correctamente.")
+except Exception as e:
+    messagebox.showerror("Error", f"Ocurrió un error: {e}")
+Crear la interfaz gráfica
+root = tk.Tk()
+root.title("PROGRAMA NOMINA CALI")
+root.geometry("500x300")
+root.configure(bg='#e0f2e9') # Fondo verde claro
+
+Estilo para los botones y labels
+style = ttk.Style()
+style.configure('TButton', background='#227f00', foreground='blue', font=('Arial', 12, 'bold'))
+style.configure('TLabel', background='#e0f2e9', foreground='#007f5f', font=('Arial', 14, 'bold'))
+
+Crear el marco principal
+frame = tk.Frame(root, bg='#e0f2e9', bd=5)
+frame.place(relx=0.5, rely=0.5, anchor='center')
+
+Etiqueta del título
+title_label = ttk.Label(frame, text="PROCESADOR DE NOMINA", style='TLabel')
+title_label.pack(pady=10)
+
+Crear el botón para seleccionar el archivo y procesar
+select_button = ttk.Button(frame, text="Seleccione Archivo Excel", style='TButton', command=select_and_process_file)
+select_button.pack(pady=20)
+
+Ejecutar el bucle principal de la interfaz gráfica
+root.mainloop()
