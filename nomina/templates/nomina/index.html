@@ -1,0 +1,28 @@
+{% extends 'nomina/base.html' %}
+
+{% block title %}PROGRAMA NOMINA CALI{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <h1 class="text-center mb-4">PROCESADOR DE NOMINA</h1>
+        <div class="card">
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        {{ form.excel_file.label_tag }}
+                        {{ form.excel_file }}
+                        {% if form.excel_file.help_text %}
+                            <small class="form-text text-muted">{{ form.excel_file.help_text }}</small>
+                        {% endif %}
+                    </div>
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary">Process File</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

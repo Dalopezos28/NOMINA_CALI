@@ -1,0 +1,26 @@
+body {
+    background-color: #e0f2e9;
+}
+
+.navbar {
+    background-color: #227f00 !important;
+}
+
+.navbar-brand {
+    color: #ffffff !important;
+    font-weight: bold;
+}
+
+h1 {
+    color: #007f5f;
+}
+
+.btn-primary {
+    background-color: #227f00;
+    border-color: #227f00;
+}
+
+.btn-primary:hover {
+    background-color: #1a6000;
+    border-color: #1a6000;
+}
